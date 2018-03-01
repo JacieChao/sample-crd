@@ -545,25 +545,7 @@
 
 [[projects]]
   name = "k8s.io/code-generator"
-  packages = [
-    "cmd/client-gen",
-    "cmd/client-gen/args",
-    "cmd/client-gen/generators",
-    "cmd/client-gen/generators/fake",
-    "cmd/client-gen/generators/scheme",
-    "cmd/client-gen/generators/util",
-    "cmd/client-gen/path",
-    "cmd/client-gen/types",
-    "cmd/conversion-gen",
-    "cmd/conversion-gen/generators",
-    "cmd/deepcopy-gen",
-    "cmd/defaulter-gen",
-    "cmd/informer-gen",
-    "cmd/informer-gen/generators",
-    "cmd/lister-gen",
-    "cmd/lister-gen/generators",
-    "cmd/openapi-gen"
-  ]
+  packages = ["."]
   revision = "91d3f6a57905178524105a085085901bb73bd3dc"
   version = "kubernetes-1.9.1"
 

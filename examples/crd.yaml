@@ -1,0 +1,21 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: samplecrds.samplecrd.k8s.io
+spec:
+  group: samplecrd.k8s.io
+  version: v1
+  names:
+    kind: SampleCRD
+    plural: samplecrds
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: samplecrds
+    # singular name to be used as an alias on the CLI and for display
+    singular: samplecrd
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: SampleCRD
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - sac
