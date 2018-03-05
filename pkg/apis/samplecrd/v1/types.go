@@ -21,7 +21,7 @@ type SampleCRD struct {
 type SampleSpec struct {
 	DeploymentName string `json:"deploymentName"`
 	Replicas *int32       `json:"replicas"`
-	Pods []v1.Pod         `json:"pods"`
+	Pods *v1.PodList      `json:"pods"`
 }
 
 type SampleStatus struct {

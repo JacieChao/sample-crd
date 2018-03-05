@@ -102,9 +102,11 @@ func (in *SampleSpec) DeepCopyInto(out *SampleSpec) {
 	}
 	if in.Pods != nil {
 		in, out := &in.Pods, &out.Pods
-		*out = make([]core_v1.Pod, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(core_v1.PodList)
+			(*in).DeepCopyInto(*out)
 		}
 	}
 	return

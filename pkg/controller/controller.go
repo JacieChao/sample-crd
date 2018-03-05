@@ -33,7 +33,7 @@ type SampleCRDController struct {
 	sampleClient sampleClientset.Interface
 
 	dplLister v1.DeploymentLister
-	dplSynced cache.InformerSynced
+	deploymentsSynced cache.InformerSynced
 	sampleLister sampleLister.SampleCRDLister
 	sampleSynced cache.InformerSynced
 
@@ -63,9 +63,9 @@ func NewSampleController(
 		kubeClient: kubeClient,
 		sampleClient: sampleClient,
 		dplLister: deployInformer.Lister(),
-		dplSynced: deployInformer.Informer().HasSynced(),
+		deploymentsSynced: deployInformer.Informer().HasSynced,
 		sampleLister: sampleInformer.Lister(),
-		sampleSynced: sampleInformer.Informer().HasSynced(),
+		sampleSynced: sampleInformer.Informer().HasSynced,
 		workqueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "SampleCRDs"),
 		recorder: recorder,
 	}
@@ -151,7 +151,7 @@ func (c *SampleCRDController) Run(threadiness int, stopCh <-chan struct{}) error
 
 	// Wait for the caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.dplSynced, c.sampleSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.deploymentsSynced, c.sampleSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -285,11 +285,11 @@ func (c *SampleCRDController) syncHandler(key string) error {
 	}
 
 	// get pods which belongs to deployment
-	labels := map[string]string{
-		"app": sample.Name,
-		"controller": sample.Name,
+	labels := fmt.Sprintf("app=%s,controller=%s", sample.Spec.DeploymentName, sample.Name)
+	listOpt := metav1.ListOptions{
+		LabelSelector: labels,
 	}
-	podList, err := c.kubeClient.CoreV1().Pods(sample.Namespace).List(labels)
+	podList, err := c.kubeClient.CoreV1().Pods(sample.Namespace).List(listOpt)
 	if err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (c *SampleCRDController) updateStatus(sample *samplev1.SampleCRD, deploymen
 
 func newDeployment(sample *samplev1.SampleCRD) *appsv1.Deployment {
 	labels := map[string]string{
-		"app": sample.Name,
+		"app": sample.Spec.DeploymentName,
 		"controller": sample.Name,
 	}
 	return &appsv1.Deployment{
