@@ -6,14 +6,14 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/listers/apps/v1"
+	"k8s.io/client-go/listers/apps/v1beta2"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/kubernetes/scheme"
 	typecorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1 "k8s.io/api/core/v1"
-	appsv1 "k8s.io/api/apps/v1"
+	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -32,7 +32,7 @@ type SampleCRDController struct {
 	kubeClient kubernetes.Interface
 	sampleClient sampleClientset.Interface
 
-	dplLister v1.DeploymentLister
+	dplLister v1beta2.DeploymentLister
 	deploymentsSynced cache.InformerSynced
 	sampleLister sampleLister.SampleCRDLister
 	sampleSynced cache.InformerSynced
@@ -48,7 +48,7 @@ func NewSampleController(
 	kubeInformerFactory informers.SharedInformerFactory,
 	sampleInformerFactory sampleInformer.SharedInformerFactory) *SampleCRDController {
 
-	deployInformer := kubeInformerFactory.Apps().V1().Deployments()
+	deployInformer := kubeInformerFactory.Apps().V1beta2().Deployments()
 	sampleInformer := sampleInformerFactory.Samplecrd().V1().SampleCRDs()
 	sampleschema.AddToScheme(scheme.Scheme)
 
@@ -81,8 +81,8 @@ func NewSampleController(
 	deployInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: c.deploy,
 		UpdateFunc: func(old, new interface{}) {
-			newDpl := new.(*appsv1.Deployment)
-			oldDpl := old.(*appsv1.Deployment)
+			newDpl := new.(*appsv1beta2.Deployment)
+			oldDpl := old.(*appsv1beta2.Deployment)
 			if newDpl.ResourceVersion == oldDpl.ResourceVersion {
 				// Periodic resync will send update events for all known Deployments.
 				// Two different versions of the same Deployment will always have different RVs.
@@ -255,7 +255,7 @@ func (c *SampleCRDController) syncHandler(key string) error {
 	deployment, err := c.dplLister.Deployments(sample.Namespace).Get(deploymentName)
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
-		deployment, err = c.kubeClient.AppsV1().Deployments(sample.Namespace).Create(newDeployment(sample))
+		deployment, err = c.kubeClient.AppsV1beta2().Deployments(sample.Namespace).Create(newDeployment(sample))
 	}
 
 	if err != nil {
@@ -272,7 +272,7 @@ func (c *SampleCRDController) syncHandler(key string) error {
 	//update deployment replicas
 	if sample.Spec.Replicas != nil && *sample.Spec.Replicas != *deployment.Spec.Replicas {
 		glog.Infof("update %s deployments replicas to %d", sample.Spec.DeploymentName, sample.Spec.Replicas)
-		deployment, err = c.kubeClient.AppsV1().Deployments(sample.Namespace).Update(newDeployment(sample))
+		deployment, err = c.kubeClient.AppsV1beta2().Deployments(sample.Namespace).Update(newDeployment(sample))
 	}
 
 	if err != nil {
@@ -299,7 +299,7 @@ func (c *SampleCRDController) syncHandler(key string) error {
 	return nil
 }
 
-func (c *SampleCRDController) updateStatus(sample *samplev1.SampleCRD, deployment *appsv1.Deployment) error {
+func (c *SampleCRDController) updateStatus(sample *samplev1.SampleCRD, deployment *appsv1beta2.Deployment) error {
 	sampleCopy := sample.DeepCopy()
 	sampleCopy.Status.CurrentReplicas = deployment.Status.ReadyReplicas
 
@@ -307,12 +307,12 @@ func (c *SampleCRDController) updateStatus(sample *samplev1.SampleCRD, deploymen
 	return err
 }
 
-func newDeployment(sample *samplev1.SampleCRD) *appsv1.Deployment {
+func newDeployment(sample *samplev1.SampleCRD) *appsv1beta2.Deployment {
 	labels := map[string]string{
 		"app": sample.Spec.DeploymentName,
 		"controller": sample.Name,
 	}
-	return &appsv1.Deployment{
+	return &appsv1beta2.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sample.Spec.DeploymentName,
 			Namespace: sample.Namespace,
@@ -324,7 +324,7 @@ func newDeployment(sample *samplev1.SampleCRD) *appsv1.Deployment {
 				}),
 			},
 		},
-		Spec: appsv1.DeploymentSpec{
+		Spec: appsv1beta2.DeploymentSpec{
 			Replicas: sample.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
@@ -337,7 +337,7 @@ func newDeployment(sample *samplev1.SampleCRD) *appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name:  "nginx",
-							Image: "nginx:latest",
+							Image: "nginx",
 						},
 					},
 				},
